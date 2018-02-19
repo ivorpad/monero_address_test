@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+ <head>
+    <title>Cryptonote Address Tests</title>
+	<meta charset="utf-8">
+	<script src="js/jquery.min.js"></script>
+	<script src="js/crc32.js"></script>
+	<script src="js/mnemonic.js"></script>
+	<script src="js/biginteger.js"></script>
+	<script src="js/config.js"></script>
+	<!--<script src="js/slow-hash-worker.min.js"></script>-->
+	<script src="js/crypto.js"></script>
+	<script src="js/base58.js"></script>
+	<script src="js/qrcode.js"></script>
+	<script src="js/sha3.js"></script>
+	<script src="js/cn_util.js?2"></script>
+	<script src="js/site.js"></script>
+
+	<!--<script src="js/vanity_address.js"></script>-->
+   
+	<style>
+	input {font-family: Lucida Console, monospace;}
+	.centerDiv {width: 1250px; margin: 0 auto;}
+	textarea {vertical-align: top;}
+	.prView {margin-left: 20px;}
+	.puView {margin-left: 17px;}
+	h1 {width: 380px; margin: 0 0; background-color: #ddd;}
+	h1, h2 {text-align: center;}
+	body {background-color: #666;}
+	#main-wrapper {width: 1650px; margin: 0 auto;}
+	#addrGen {background-color: #ddd; padding-top: 1px;}
+	#addrGen > h2 {margin-top: 0px;}
+	#addrCheck {background-color: #ddd; padding-top: 1px; width: 1300px;}
+	#explanation {background-color: #ddd; padding-top: 1px;}
+	#randomButtons {float: right; margin-right: 10px;}
+	#payID {margin-left: 200px;}
+	#pubAddr2 {margin-left: 35px;}
+	#pubAddrHex {margin-left: 4px;}
+	#pubSpend2 {margin-left: 67px;}
+	#pubView2 {margin-left: 3px;}
+	#extraInput {margin-left: 164px;}
+	#pubAddrForHash {margin-left: 40px;}
+	#pubAddrHash {margin-left: 54px;}
+	#pubAddrChksum2 {margin-left: 57px; margin-right: 10px;}
+	#validYes {color: #0a0;}
+	#validNo {color: #f00;}
+	#qr-wrapper {float: right; width: 320px; height: 410.813px; background-color: #ddd;}
+	#qr {width: 150px; height: 150px; margin: 50px auto auto auto;}
+	div#qr > img {display: block; margin: 0 auto;}
+	#coinSelect {padding: 20px 0px 0px 20px; background-color: #ddd;}
+	#expText {margin: 0px 30px 0px 30px;/* font-family: cursive;}
+	#explanation > h2 {font-family: cursive;*/}
+	#xmrAddr {margin-left: 27px;}
+	</style>
+
+ </head>
+ <body>
+	<div id="main-wrapper">
+		<h1>Cryptonote Address Tests</h1>
+		<div id="coinSelect">
+			<select id="coinType" onchange="coinType(this.value);">
+				<option value="12">Standard XMR</option>
+				<option value="01">BBR</option>
+				<option value="48">(the real) DaSH</option>
+				<option value="b201">AEON</option>
+				<option value="35">XMR Testnet</option>
+				<option value="13">XMR Integrated</option>
+				<option value="11">XMR Truncated</option>
+			</select>
+			<label for="pubAddrNetByte">&nbsp;Network Byte:&nbsp;</label>
+			<input type="text" id="pubAddrNetByte" value="12" size="4" readonly="readonly" />
+			&nbsp;&nbsp;
+			<label for="mnDict">Mnemonic Dictionary</label>
+			<select id="mnDict">
+				<option value="english">English (Monero default)</option>
+				<option value="electrum">Electrum (Aeon default)</option>
+				<option value="spanish">Spanish</option>
+				<option value="portuguese">Portuguese</option>
+				<option value="japanese">Japanese</option>
+			</select>
+			<span style="font-size:small;">Note: Only XMR is fully supported by this site.</span>
+		</div>
+		<div id="addrGen">
+			<h2>Address Generation</h2>
+			<label for="mnemonic">&nbsp;1. Mnemonic Seed:&nbsp;&nbsp;&nbsp;&nbsp;</label>
+			<textarea id="mnemonic" cols="120" rows="2" placeholder="13 or 24/25 word mnemonic seed"></textarea>
+			<button onclick="mnemonicSubmit();">Gen 2.</button>
+			<button onclick="mnemonicRandom();">Random</button>
+			<span id="randomButtons">
+				<button onclick="allRandom();">Random</button>
+				<button onclick="allRandomMm();">Random MyMonero</button>
+			</span>
+			<br>
+			<br>
+			<label for="hexSeed">&nbsp;2. Hexadecimal Seed:</label>
+			<input type="text" id="hexSeed" placeholder="128-bit random (MyMonero) OR 256-bit scalar (Deterministic)" size="66" />
+			<button onclick="hexSeedSubmit();">Gen 3. & 4.</button>
+			<button onclick="hexSeedRandom();">Random</button>
+			<button onclick="hexSeedToMn();">Gen 1.</button>
+			<br>
+			<br>
+			<label for="privSpend">&nbsp;3. Private Spend Key:</label>
+			<input type="text" id="privSpend" placeholder="Private Spend Key" size="66" />
+			<button onclick="spendSubmit();">Gen 5.</button>
+			<button onclick="spendRandom();">Random</button>
+			<label class="prView" for="privView">4. Private View Key:&nbsp;</label>
+			<input type="text" id="privView" placeholder="Private View Key" size="66" />
+			<button onclick="viewSubmit();">Gen 6.</button>
+			<button onclick="viewRandom();">Random.</button>
+			<br>
+			<br>
+			<label for="pubSpend">&nbsp;5. Public Spend Key:&nbsp;</label>
+			<input type="text" id="pubSpend" placeholder="Public Spend Key" size="66" />
+			<button onclick="pubToView();">Gen 4. (Audit Addr)</button>
+			<label  class="puView" for="pubView">6. Public View Key:&nbsp;&nbsp;</label>
+			<input type="text" id="pubView" placeholder="Public View Key" size="66" />
+			<br>
+			<br>
+			<div class="centerDiv">
+				<label id="payID" for="paymentID">Payment ID:&nbsp;</label>
+				<input type="text" id="paymentID" placeholder="Payment ID for &quot;Integrated Address&quot; only; 16 hex chars" size="66" />
+				<button onclick="randID();">Random</button>
+				<button onclick="addrSubmit();">Gen 7.</button>
+				<br>
+				<br>
+				<label for="pubAddr">7. Public Address:&nbsp;</label>
+				<input type="text" id="pubAddr" placeholder="Public Address Base58" size="110" />
+				<button onclick="toAddrTest();">Send to 8.</button>
+				<button onclick="genQR();">Generate QR Code</button>
+			</div>
+			<br>
+		</div>
+		<br>
+		<br>
+		<span id="qr-wrapper">
+			<br>
+			<h2>QR Code</h2>
+			<div id="qr"></div>
+		</span>	
+		<div id="addrCheck">
+			
+			<h2>Check Address</h2>
+			<label for="pubAddr2">&nbsp;8. Public Address:&nbsp;</label>
+			<input type="text" id="pubAddr2" placeholder="Public Address Base58" size="110" />
+			<button onclick="addrCheck();">Check Address</button>
+			<button onclick="clearAddr();">Clear Fields</button>
+			<br>
+			<br>
+			<label for="pubAddrHex">&nbsp;9. Public Address Hex:&nbsp;</label>
+			<input type="text" id="pubAddrHex" placeholder="2 (network) + 64 (spendkey) + 64 (viewkey) + 8 (checksum) Base16 digits" size="140" readonly="readonly" />
+			<br>
+			<br>
+			<label for="pubSpend2">&nbsp;10. Decoded:&nbsp;</label>
+			<input type="text" id="pubSpend2" placeholder="Public Spend Key" size="66" readonly="readonly" />
+			<input type="text" id="pubView2" placeholder="Public View Key" size="66" readonly="readonly" />
+			<br>
+			<br>
+			<input type="text" id="extraInput" placeholder="Payment ID (Integrated Address Only) OR Private View Key (Truncated Address Only)" size="90" readonly="readonly" />
+			<br>
+			<br>
+			<label for="pubAddrChksum">&nbsp;11. Address Checksum:&nbsp;</label>
+			<input type="text" id="pubAddrChksum" placeholder="Last 4 bytes of 9" size="18" readonly="readonly" />
+			<br>
+			<br>
+			<label for="pubAddrForHash">&nbsp;12. Netbyte + 10:&nbsp;</label>
+			<input type="text" id="pubAddrForHash" placeholder="2 + 64 [+ 64 [+ 16]] Base16 digits" size="140" readonly="readonly" />
+			<br>
+			<br>
+			<label for="pubAddrHash">&nbsp;13. Hash of 12:&nbsp;</label>
+			<input type="text" id="pubAddrHash" placeholder="256-bit keccak hash" size="66" readonly="readonly" />
+			<br>
+			<br>
+			<label for="pubAddrChksum2">&nbsp;14. Checksum:&nbsp;</label>
+			<input type="text" id="pubAddrChksum2" placeholder="First 4 bytes of 13" size="20" readonly="readonly" />
+			<span>Does #14 equal #11?&nbsp; <span id="validYes"></span><span id="validNo"></span></span>
+			<br>
+			<br>
+			<label for="xmrAddr">&nbsp;15. Standard XMR:&nbsp;</label>
+			<input type="text" id="xmrAddr" placeholder="Address represented in standard XMR format" size="110" readonly="readonly" />
+
+			<br>
+			<br>
+		</div>
+	
+		<br>
+		<br>
+		
+		
+	</div>
+ </body>
+ 
+</html>
